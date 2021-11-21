@@ -60,7 +60,7 @@ RPC 模式的调用，可以让我们像调用本地方法一样完成服务通�
 
 我们有两种方式完成整合。
 
-##### 方式一、使用配置
+##### 方式一、使用配置（推荐）
 
 直接在 `application.yml` 配置即可：
 
@@ -72,6 +72,7 @@ sa-token:
 
 
 ##### 方式二、自建 Dubbo 过滤器校验
+此方式略显繁琐，好处是除了Id-Token，我们还可以添加其它自定义参数 (attachment)。
 
 1、在 [ 调用端 ] 的 `\resources\META-INF\dubbo\` 目录新建 `org.apache.dubbo.rpc.Filter` 文件
 ``` html
@@ -99,7 +100,10 @@ public class DubboConsumerFilter implements Filter {
 	public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
 		
 		// 追加 Id-Token 参数 
-		RpcContext.getContext().setAttachment(SaIdUtil.ID_TOKEN, SaIdUtil.getToken()); 
+		RpcContext.getContext().setAttachment(SaIdUtil.ID_TOKEN, SaIdUtil.getToken());
+		
+		// 如果有其他自定义附加数据，如租户
+		// RpcContext.getContext().setAttachment("tenantContext", tenantContext);
 		
 		// 开始调用
 		return invoker.invoke(invocation);
@@ -137,6 +141,9 @@ public class DubboProviderFilter implements Filter {
 		// 取出 Id-Token 进行校验 
 		String idToken = invocation.getAttachment(SaIdUtil.ID_TOKEN);
 		SaIdUtil.checkToken(idToken);
+		
+		// 取出其他自定义附加数据
+		// TenantContext tenantContext = invocation.getAttachment("tenantContext");
 		
 		// 开始调用
 		return invoker.invoke(invocation);
